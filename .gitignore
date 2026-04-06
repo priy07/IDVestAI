@@ -1,0 +1,45 @@
+# IDVestAI — .gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Environment variables — NEVER commit!
+.env
+
+# Model weights (large binary files — store in cloud storage instead)
+models/*.pt
+!models/.gitkeep
+
+# YOLOv8 / Ultralytics run artifacts
+runs/
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Pytest cache
+.pytest_cache/
+.coverage
+htmlcov/

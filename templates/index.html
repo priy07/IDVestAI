@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>IdVest AI — Compliance Monitor</title>
+  <link rel="icon" href="/logo.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+
+  <style>
+    /* Neon Dark Glass Theme */
+    :root {
+      --bg: #0a0a0f;
+      --surface: rgba(20, 20, 30, 0.6);
+      --card: rgba(20, 20, 30, 0.5);
+      --card-hover: rgba(30, 30, 45, 0.7);
+      --border: rgba(0, 255, 255, 0.15);
+      --border-hi: rgba(0, 255, 255, 0.4);
+      --neon-cyan: #00ffff;
+      --neon-purple: #bc13fe;
+      --green: #00e676;
+      --red: #ff1744;
+      --orange: #ff9100;
+      --text: #e0e6ed;
+      --muted: #8b9bb4;
+      --r-sm: 12px; --r-md: 18px; --r-lg: 24px;
+      --ease: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    
+    body::before {
+      content: ''; position: fixed; inset: 0; z-index: -1;
+      background: 
+        radial-gradient(circle at 15% 10%, rgba(0, 255, 255, 0.08) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(188, 19, 254, 0.08) 0%, transparent 40%);
+    }
+
+    .page { max-width: 1400px; margin: 0 auto; padding: 0 20px 60px; }
+
+    /* Header */
+    header {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(10, 10, 15, 0.75);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .hdr {
+      max-width: 1400px; margin: 0 auto; padding: 14px 20px;
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 12px; text-decoration: none;
+    }
+    .logo-img {
+      height: 40px; 
+      width: auto; 
+      object-fit: contain;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 8px;
+      padding: 4px;
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+    }
+    .logo-name {
+      font-size: 1.25rem; font-weight: 800;
+      color: #fff; text-shadow: 0 0 10px rgba(255,255,255,0.3);
+    }
+
+    .hdr-right { display: flex; align-items: center; gap: 15px; flex-wrap: wrap;}
+
+    .btn {
+      font-size: 0.8rem; font-weight: 600; padding: 8px 18px;
+      border-radius: 8px; border: 1px solid var(--border);
+      background: rgba(255,255,255,0.05); color: var(--text);
+      cursor: pointer; transition: all 0.3s var(--ease);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn:hover {
+      background: rgba(255,255,255,0.1); border-color: var(--neon-cyan);
+      box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+    }
+    .btn-primary {
+      background: rgba(188, 19, 254, 0.15); border-color: var(--neon-purple);
+      color: #fff; font-weight: 700;
+    }
+    .btn-primary:hover {
+      background: rgba(188, 19, 254, 0.3); box-shadow: 0 0 15px rgba(188, 19, 254, 0.4);
+    }
+
+    /* Main Layout */
+    .top-banner {
+      margin: 24px 0; padding: 18px 24px; border-radius: var(--r-md);
+      background: var(--card); border: 1px solid var(--border);
+      backdrop-filter: blur(12px); display: flex; align-items: center; justify-content: space-between;
+      transition: all 0.3s;
+    }
+    .main-grid { display: grid; grid-template-columns: 1fr 380px; gap: 24px; }
+    @media (max-width: 900px) { .main-grid { grid-template-columns: 1fr; } }
+
+    /* Cards */
+    .card {
+      background: var(--card); backdrop-filter: blur(12px);
+      border: 1px solid var(--border); border-radius: var(--r-lg);
+      padding: 24px; transition: all 0.3s var(--ease);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .card:hover { border-color: var(--border-hi); }
+    .card-title { font-size: 0.9rem; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 20px; }
+
+    /* Drag & Drop */
+    #drop-zone {
+      border: 2px dashed rgba(0, 255, 255, 0.3); text-align: center; cursor: pointer;
+      padding: 40px; margin-bottom: 24px; border-radius: var(--r-md);
+      background: rgba(0, 255, 255, 0.02); transition: all 0.3s ease;
+    }
+    #drop-zone:hover, #drop-zone.dragover {
+      border-color: var(--neon-cyan); background: rgba(0, 255, 255, 0.08);
+      box-shadow: 0 0 20px rgba(0, 255, 255, 0.15);
+    }
+
+    /* Video Frames */
+    .multi-cam-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 600px) { .multi-cam-grid { grid-template-columns: 1fr; } }
+    
+    .video-container {
+      position: relative; width: 100%; border-radius: 12px; overflow: hidden;
+      border: 1px solid var(--border); background: #05050a;
+      aspect-ratio: 4/3; display: flex; align-items: center; justify-content: center;
+      transition: all 0.3s ease;
+    }
+    .video-container img, .video-container video { width: 100%; height: 100%; object-fit: contain; }
+    
+    .neon-border {
+      animation: neon-pulse 3s infinite alternate;
+      border-color: rgba(22, 199, 132, 0.4);
+    }
+    @keyframes neon-pulse {
+      from { box-shadow: 0 0 5px var(--green), inset 0 0 5px var(--green); }
+      to { box-shadow: 0 0 15px var(--green), inset 0 0 10px var(--green); }
+    }
+
+    .live-badge {
+      position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7);
+      padding: 6px 12px; border-radius: 6px; font-weight: bold; font-size: 0.75rem;
+      border: 1px solid var(--neon-cyan); color: var(--neon-cyan); display: flex; align-items: center; gap: 8px; z-index: 5;
+      backdrop-filter: blur(4px);
+    }
+
+    /* Stats Grid */
+    .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .stat-box {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      padding: 18px; border-radius: var(--r-md); text-align: center;
+      transition: transform 0.3s;
+    }
+    .stat-box:hover { transform: translateY(-5px); border-color: var(--neon-purple); }
+    .stat-val { font-size: 1.8rem; font-weight: 800; color: #fff; margin-top: 5px; }
+
+    /* Badges */
+    .badge {
+      padding: 4px 10px; border-radius: 8px; font-size: 0.7rem; font-weight: 700;
+      background: rgba(255,255,255,0.1); color: #fff;
+    }
+    .badge.ok { background: rgba(0, 230, 118, 0.15); color: var(--green); border: 1px solid var(--green); }
+    .badge.fail { background: rgba(255, 23, 68, 0.15); color: var(--red); border: 1px solid var(--red); }
+    
+    /* Upload preview section */
+    #upload-preview-card { display: none; margin-bottom: 24px; }
+    
+    .loader-overlay {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 10; opacity: 0; pointer-events: none; transition: opacity 0.3s;
+    }
+    .loader-overlay.active { opacity: 1; pointer-events: auto; }
+    .spinner {
+      width: 40px; height: 40px; border: 3px solid transparent;
+      border-top-color: var(--neon-cyan); border-bottom-color: var(--neon-purple);
+      border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 15px;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+
+    /* Breakdown bars */
+    .b-row { margin-bottom: 15px; }
+    .b-label { display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 6px; }
+    .b-bar-bg { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+    .b-bar-fill { height: 100%; transition: width 1s ease-out; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="hdr">
+    <a class="logo" href="/">
+      <img src="/logo.png" alt="IdVest AI Logo" class="logo-img" />
+      <div class="logo-name">IdVest AI</div>
+    </a>
+    <div class="hdr-right">
+      <button class="btn btn-primary" onclick="downloadReport()">📄 Download PDF Report</button>
+      <button class="btn" onclick="resetLogs()">↺ Reset Logs</button>
+    </div>
+  </div>
+</header>
+
+<div class="page">
+  <div class="top-banner" id="status-banner">
+    <div style="display:flex; align-items:center; gap: 15px;">
+      <div style="font-size: 1.5rem" id="banner-icon">🚀</div>
+      <div>
+        <div style="font-weight: 800; font-size: 1.1rem">System Live Active</div>
+        <div style="font-size: 0.8rem; color: var(--muted)">Monitoring up to 4 Live Camera Feeds</div>
+      </div>
+    </div>
+    <div style="text-align: right;">
+        <span class="badge ok">System Optimized</span>
+    </div>
+  </div>
+
+  <div class="card" id="drop-zone">
+    <div style="font-size: 2.2rem; margin-bottom: 10px;">📤</div>
+    <div style="font-weight: 700; font-size: 1.1rem;">Drag & Drop Image or Video Here</div>
+    <div style="font-size: 0.8rem; color: var(--muted); margin-top: 5px;">Or click anywhere in this box to browse files (jpg, png, mp4, avi)</div>
+    <input type="file" id="file-input" style="display:none" accept="image/jpeg, image/png, video/mp4, video/avi">
+  </div>
+
+  <div class="main-grid">
+    <div class="left-col">
+      <div class="card" id="upload-preview-card">
+        <div class="card-title" id="upload-title">📤 Upload Verification Preview</div>
+        <div class="video-container" id="upload-container" style="border-width: 2px;">
+          <div class="loader-overlay" id="upload-loader">
+            <div class="spinner"></div>
+            <div style="color:var(--neon-cyan); font-weight:600" id="upload-loader-text">Processing Upload...</div>
+          </div>
+          <div id="upload-content" style="text-align:center; color:var(--muted); padding:40px;">Result will appear here</div>
+        </div>
+        <div id="upload-verdict" style="margin-top:20px;"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🔴 Multi-Camera Feeds</div>
+        <div class="multi-cam-grid">
+          <div class="video-container neon-border" id="cam0-container">
+            <div class="live-badge">CAM-00</div>
+            <img src="/video?cam=0" onerror="this.style.display='none'; this.parentElement.innerHTML+='<div style=\'color:var(--muted)\'>Camera Offline</div>'">
+          </div>
+          <div class="video-container neon-border" id="cam1-container">
+            <div class="live-badge">CAM-01</div>
+            <img src="/video?cam=1" onerror="this.style.display='none'; this.parentElement.innerHTML+='<div style=\'color:var(--muted)\'>Camera Offline</div>'">
+          </div>
+          <div class="video-container neon-border" id="cam2-container">
+            <div class="live-badge">CAM-02</div>
+            <img src="/video?cam=2" onerror="this.style.display='none'; this.parentElement.innerHTML+='<div style=\'color:var(--muted)\'>Camera Offline</div>'">
+          </div>
+          <div class="video-container neon-border" id="cam3-container">
+            <div class="live-badge">CAM-03</div>
+            <img src="/video?cam=3" onerror="this.style.display='none'; this.parentElement.innerHTML+='<div style=\'color:var(--muted)\'>Camera Offline</div>'">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-col">
+      <div class="card stats-grid">
+        <div class="stat-box">
+          <div style="font-size:0.75rem; color:var(--muted)">TOTAL</div>
+          <div class="stat-val" id="kpi-total">0</div>
+        </div>
+        <div class="stat-box">
+          <div style="font-size:0.75rem; color:var(--muted)">COMPLIANT</div>
+          <div class="stat-val" id="kpi-compliant" style="color:var(--green)">0</div>
+        </div>
+        <div class="stat-box">
+          <div style="font-size:0.75rem; color:var(--muted)">VIOLATIONS</div>
+          <div class="stat-val" id="kpi-violations" style="color:var(--red)">0</div>
+        </div>
+        <div class="stat-box">
+          <div style="font-size:0.75rem; color:var(--muted)">RATE</div>
+          <div class="stat-val" id="kpi-rate" style="color:var(--neon-cyan); font-size:1.5rem; margin-top:10px;">0%</div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:24px;">
+        <div class="card-title">Violation Breakdown</div>
+        <div class="b-row">
+          <div class="b-label"><span>Missing ID</span><span id="lb-missing" style="color:var(--red)">0</span></div>
+          <div class="b-bar-bg"><div class="b-bar-fill" id="bar-missing" style="background:var(--red); width:0%"></div></div>
+        </div>
+        <div class="b-row">
+          <div class="b-label"><span>Improper Dress</span><span id="lb-dress" style="color:var(--orange)">0</span></div>
+          <div class="b-bar-bg"><div class="b-bar-fill" id="bar-dress" style="background:var(--orange); width:0%"></div></div>
+        </div>
+        <div class="b-row">
+          <div class="b-label"><span>Compliant</span><span id="lb-ok" style="color:var(--green)">0</span></div>
+          <div class="b-bar-bg"><div class="b-bar-fill" id="bar-ok" style="background:var(--green); width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:24px;">
+        <div class="card-title">Current Detections</div>
+        <div id="persons-list" style="font-size:0.85rem; max-height: 400px; overflow-y: auto; padding-right: 10px;">
+          <div style="color:var(--muted); text-align:center;">Waiting for detections...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ─── Metrics Polling ──────────────────────────────────────────────────
+  function updateKPIs(s) {
+    document.getElementById('kpi-total').innerText = s.total || 0;
+    document.getElementById('kpi-compliant').innerText = s.compliant || 0;
+    document.getElementById('kpi-violations').innerText = s.violations || 0;
+    document.getElementById('kpi-rate').innerText = s.rate || '0%';
+
+    const t = Math.max(s.total || 1, 1);
+    document.getElementById('lb-missing').innerText = s.missing_id || 0;
+    document.getElementById('bar-missing').style.width = ((s.missing_id || 0) / t * 100) + '%';
+    document.getElementById('lb-dress').innerText = s.improper_dress || 0;
+    document.getElementById('bar-dress').style.width = ((s.improper_dress || 0) / t * 100) + '%';
+    document.getElementById('lb-ok').innerText = s.compliant || 0;
+    document.getElementById('bar-ok').style.width = ((s.compliant || 0) / t * 100) + '%';
+  }
+
+  function updateStatusList(v, cam_id) {
+    const pl = document.getElementById('persons-list');
+    if(!v.person_results || v.person_results.length === 0) return;
+    
+    // Clear waiting message on first detection
+    if(pl.innerHTML.includes("Waiting")) pl.innerHTML = "";
+    
+    const newHtml = v.person_results.map(p => `
+      <div style="background:rgba(255,255,255,0.05); padding:12px; border-radius:8px; margin-bottom:10px; border-left: 3px solid ${p.compliance==='Compliant'?'var(--green)':'var(--red)'}">
+        <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+            <div style="font-weight:700; color:var(--text);">${p.person_id} <span style="color:var(--muted); font-size:0.7rem; font-weight:normal;">(${cam_id})</span></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; gap: 5px;">
+          <span class="badge ${p.id_status === 'Present' ? 'ok' : 'fail'}">ID: ${p.id_status}</span>
+          <span class="badge ${p.attire === 'Formal' || p.attire === 'Faculty' ? 'ok' : 'fail'}">Dress: ${p.attire}</span>
+          ${p.image_path ? `<a href="/${p.image_path}" target="_blank" class="badge" style="background:rgba(0,255,255,0.05); border:1px solid var(--neon-cyan); color:var(--neon-cyan); text-decoration:none;">📸 View</a>` : ''}
+        </div>
+      </div>
+    `).join('');
+    
+    // Simple approach: replace all items for this camera or just append (could get long, so we limit elements eventually).
+    // Let's just overwrite for now to keep the dashboard snappy.
+    pl.innerHTML = newHtml;
+  }
+
+  async function pollCam(camIdx) {
+    try {
+      const r = await fetch('/stats?cam=' + camIdx);
+      if(!r.ok) return;
+      const d = await r.json();
+      
+      const v = d.verdict;
+      updateStatusList(v, 'CAM-0' + camIdx);
+      updateKPIs(d.summary);
+
+      // Adjust camera container border glow
+      const lc = document.getElementById('cam' + camIdx + '-container');
+      if(lc) {
+          if(v.is_compliant) { lc.style.boxShadow = '0 0 15px var(--green)'; lc.style.borderColor = 'var(--green)'; }
+          else if(v.status !== 'No Person Detected' && v.status !== 'Initialising...') { lc.style.boxShadow = '0 0 15px var(--red)'; lc.style.borderColor = 'var(--red)'; }
+          else { lc.style.boxShadow = ''; lc.style.borderColor = 'var(--border)'; }
+      }
+    } catch(e) {}
+  }
+  
+  async function pollAll() { pollCam(0); /* Allow querying additional cameras here if needed, but summary is global -> pollCam(1); pollCam(2); pollCam(3); could be added */ }
+  setInterval(pollAll, 2000); pollAll();
+
+  // ─── Actions ──────────────────────────────────────────────────────────
+  async function resetLogs() {
+    if(!confirm('Clear logs?')) return;
+    try {
+      await fetch('/logs', {method:'DELETE'});
+      alert('Logs cleared successfully');
+      document.getElementById('persons-list').innerHTML = '<div style="color:var(--muted); text-align:center;">Waiting for detections...</div>';
+    } catch (e) {}
+  }
+
+  function downloadReport() {
+    window.open('/report', '_blank');
+  }
+
+  // ─── Drag & Drop / Uploads ────────────────────────────────────────────
+  const dropZone = document.getElementById('drop-zone');
+  const fileInput = document.getElementById('file-input');
+  
+  dropZone.addEventListener('click', () => fileInput.click());
+  
+  dropZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  
+  dropZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if(e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleFile(e.dataTransfer.files[0]);
+    }
+  });
+  
+  fileInput.addEventListener('change', (e) => {
+    if(e.target.files.length > 0) handleFile(e.target.files[0]);
+  });
+  
+  function handleFile(file) {
+    // Determine type
+    if(file.type.startsWith('image/')) {
+        uploadImage(file);
+    } else if (file.type.startsWith('video/')) {
+        uploadVideo(file);
+    } else {
+        alert("Unsupported file type. Please upload an image or video.");
+    }
+  }
+
+  async function uploadImage(file) {
+    showUploadLoader('📤 Processing Image...', 'img');
+    const fd = new FormData(); fd.append('file', file);
+    
+    try {
+      const r = await fetch('/upload-image', { method: 'POST', body: fd });
+      if(!r.ok) throw new Error("Upload failed. Validation error.");
+      const d = await r.json();
+      hideUploadLoader();
+      
+      const img = document.createElement('img');
+      img.src = 'data:image/jpeg;base64,' + d.image_b64;
+      document.getElementById('upload-content').innerHTML = '';
+      document.getElementById('upload-content').appendChild(img);
+      
+      renderVerdict(d.verdict);
+    } catch(err) {
+      hideUploadLoader(); alert('Error: ' + err.message);
+    }
+    fileInput.value = '';
+  }
+
+  async function uploadVideo(file) {
+    showUploadLoader('🎥 Processing Video frames... This may take a while depending on file size.', 'vid');
+    const fd = new FormData(); fd.append('file', file);
+    
+    try {
+      const r = await fetch('/upload-video', { method: 'POST', body: fd });
+      if(!r.ok) throw new Error("Upload failed. Validation error.");
+      const blob = await r.blob();
+      const url = URL.createObjectURL(blob);
+      
+      hideUploadLoader();
+      document.getElementById('upload-content').innerHTML = `
+        <video controls autoplay style="width:100%; height:100%; max-height: 480px; align-self: center;">
+          <source src="${url}" type="video/mp4">
+        </video>
+      `;
+      document.getElementById('upload-verdict').innerHTML = `<div class="badge ok" style="padding:10px 15px; font-size: 0.85rem;">Video Processed Successfully</div>`;
+    } catch(err) {
+      hideUploadLoader(); alert('Error processing video. Note: large videos take a lot of time.');
+    }
+    fileInput.value = '';
+  }
+
+  function renderVerdict(v) {
+      const box = document.getElementById('upload-verdict');
+      box.innerHTML = `
+        <div style="background:rgba(255,255,255,0.05); padding:16px; border-radius:12px; border:1px solid ${v.is_compliant?'var(--green)':'var(--red)'}">
+          <div style="font-size:1.1rem; font-weight:700; margin-bottom:10px; color:${v.is_compliant?'var(--green)':'var(--red)'}">
+            Verdict: ${v.status}
+          </div>
+          <p style="font-size:0.85rem; color:var(--text)">Has ID Card: <b>${v.has_id ? 'Yes':'No'}</b> | Attire Identified: <b>${v.dress_code}</b></p>
+        </div>
+      `;
+  }
+
+  function showUploadLoader(text, type) {
+    document.getElementById('upload-preview-card').style.display = 'block';
+    document.getElementById('upload-loader').classList.add('active');
+    document.getElementById('upload-loader-text').innerText = text;
+    document.getElementById('upload-content').innerHTML = '';
+    document.getElementById('upload-verdict').innerHTML = '';
+    document.getElementById('drop-zone').scrollIntoView({behavior: 'smooth', block: 'start'});
+  }
+  function hideUploadLoader() {
+    document.getElementById('upload-loader').classList.remove('active');
+  }
+</script>
+</body>
+</html>
