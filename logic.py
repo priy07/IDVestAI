@@ -121,65 +121,53 @@ class LogicEngine:
         alerts = []
         is_faculty = self.LBL_FACULTY_ID in classes
 
-        # 3. Attire Classification
-        has_blazer = self.LBL_BLAZER in classes
-        has_formals = self.LBL_FORMALS in classes
-        has_fac_cas = self.LBL_FACULTY_CASUALS in classes
+        # Base detections
+        has_blazer = self.LBL_BLAZER in classes or self.LBL_FORMALS in classes
+        has_id = self.LBL_ID_CARD in classes or self.LBL_FACULTY_ID in classes
+        is_weak_id = f"{self.LBL_ID_CARD}-weak" in classes or f"{self.LBL_FACULTY_ID}-weak" in classes
+        
+        # Combine rules: blazer + weak chest object (lanyard/card signal) -> assume ID present
+        if has_blazer and is_weak_id:
+            has_id = True
 
-        if has_blazer or has_formals:
-            raw_attire = "Formal"
-        elif has_fac_cas:
-            raw_attire = "Faculty"
-        else:
-            raw_attire = "Not Formal"
-
-        # 4. ID Validation
-        has_id = self.LBL_ID_CARD in classes
-        has_any_id = has_id or self.LBL_FACULTY_ID in classes
-
-        if is_faculty:
-            raw_id_status = "Present" if has_any_id else "Missing"
-        else:
-            raw_id_status = "Present" if has_id else "Missing"
-
-        # History Buffering (Stabilize)
+        # History buffering logic
         if person_id not in self.history:
             self.history[person_id] = {"id_status": [], "attire": []}
         
         hist = self.history[person_id]
-        hist["id_status"].append(raw_id_status)
-        hist["attire"].append(raw_attire)
+        hist["id_status"].append(has_id)
+        hist["attire"].append(has_blazer)
 
         if len(hist["id_status"]) > 5:
             hist["id_status"].pop(0)
         if len(hist["attire"]) > 5:
             hist["attire"].pop(0)
 
-        # Majority voting
-        present_count = sum(1 for status in hist["id_status"] if status == "Present")
-        if len(hist["id_status"]) >= 3:
-            id_status = "Present" if present_count >= 3 else "Missing"
-        else:
-            id_status = raw_id_status
+        # Majority voting (3 out of 5 frames required for stability)
+        vote_id = sum(1 for val in hist["id_status"] if val)
+        vote_blazer = sum(1 for val in hist["attire"] if val)
 
-        attire = max(set(hist["attire"]), key=hist["attire"].count)
+        stable_has_id = vote_id >= min(3, len(hist["id_status"]))
+        stable_has_blazer = vote_blazer >= min(3, len(hist["attire"]))
 
-        # 5. Monday Rule
-        if is_monday and is_faculty and attire != "Faculty":
-            alerts.append("Missing faculty-casuals on Monday")
+        # Formatting Output variables
+        id_str = "Present" if stable_has_id else "Missing"
+        attire_str = "Formal" if stable_has_blazer else "Not Formal"
 
-        if attire == "Not Formal" and not is_faculty:
-            alerts.append("Not Formal")
-        
-        if id_status == "Missing":
+        # Requested logical evaluation schema
+        if stable_has_blazer and stable_has_id:
+            compliance = "Compliant"
+        elif stable_has_blazer and not stable_has_id:
+            compliance = "Violation"
             alerts.append("Missing ID")
-
-        compliance = "Compliant" if not alerts else "Violation"
+        else:
+            compliance = "Violation"
+            alerts.append("Improper Dress")
 
         return {
             "person_id": person_id,
-            "attire": attire,
-            "id_status": id_status,
+            "attire": attire_str,
+            "id_status": id_str,
             "compliance": compliance,
             "box": box,
             "alerts": alerts

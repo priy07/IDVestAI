@@ -94,6 +94,7 @@ VIOLATION_DIR = ROOT / "violations"
 for d in [IMG_DIR, VID_DIR, OUT_DIR, REPORT_DIR, VIOLATION_DIR]:
     d.mkdir(parents=True, exist_ok=True)
     
+app.mount("/logo", StaticFiles(directory="logo"), name="logo")    
 app.mount("/outputs", StaticFiles(directory=str(OUT_DIR)), name="outputs")
 app.mount("/violations", StaticFiles(directory=str(VIOLATION_DIR)), name="violations")
 
@@ -106,6 +107,31 @@ _logic:    Optional[LogicEngine]     = None
 _alert:    Optional[AlertSystem]     = None
 _db:       Optional[Database]        = None
 _inference_lock = threading.Lock()
+
+# Global real-time stats counters
+stats_counters = {
+    "total": 0,
+    "violations": 0,
+    "compliant": 0,
+    "missing_id": 0,
+    "improper_dress": 0
+}
+
+def update_global_stats(verdict: Dict[str, Any]):
+    global stats_counters
+    status = verdict.get("status")
+    if not status or status in ("No Person Detected", "Initialising…"):
+        return
+        
+    stats_counters["total"] += 1
+    if verdict.get("is_compliant"):
+        stats_counters["compliant"] += 1
+    else:
+        stats_counters["violations"] += 1
+        if status == "Missing ID":
+            stats_counters["missing_id"] += 1
+        elif status == "Improper Dress":
+            stats_counters["improper_dress"] += 1
 
 def save_violation_image(frame: np.ndarray, cam_id: str, person_id: str) -> str:
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -126,6 +152,8 @@ def process_frame(frame: np.ndarray, cam_id: str) -> Tuple[np.ndarray, Dict[str,
         person_results = _logic.evaluate(detections)
         verdict = _logic.get_frame_verdict(person_results)
         annotated = _detector.draw_boxes(frame, detections)
+        
+    update_global_stats(verdict)
 
     now = time.time()
     # Spam Protection: time-based cache per camera
@@ -162,72 +190,7 @@ def process_frame(frame: np.ndarray, cam_id: str) -> Tuple[np.ndarray, Dict[str,
     return annotated, verdict
 
 
-class CameraManager:
-    def __init__(self):
-        self.cameras = {}
-        self.locks = {}
-        self.latest_jpegs = {}
-        self.latest_verdicts = {}
-        self.camera_running = {}
-
-    def start_camera(self, cam_index: int):
-        cam_id = f"CAM-{cam_index:02d}"
-        if cam_id in self.cameras:
-            return
-            
-        if len(self.cameras) >= 4:
-            logger.error(f"Failed to start {cam_id}: Max 4 cameras reached.")
-            return
-            
-        cap = cv2.VideoCapture(cam_index)
-        if not cap.isOpened():
-            logger.error(f"Failed to open camera {cam_index}")
-            return
-            
-        self.cameras[cam_id] = cap
-        self.locks[cam_id] = threading.Lock()
-        self.latest_jpegs[cam_id] = b""
-        self.latest_verdicts[cam_id] = {
-            "status": "Initialising…", "has_id": False,
-            "dress_code": "unknown", "is_compliant": False, "person_results": []
-        }
-        self.camera_running[cam_id] = True
-        
-        t = threading.Thread(target=self._camera_loop, args=(cap, cam_id), daemon=True)
-        t.start()
-        logger.info(f"Started camera {cam_id}")
-
-    def _camera_loop(self, cap, cam_id):
-        frame_idx = 0
-        while self.camera_running.get(cam_id, False):
-            try:
-                ret, frame = cap.read()
-                if not ret:
-                    time.sleep(0.1)
-                    continue
-                
-                frame_idx += 1
-                if frame_idx % 3 != 0:
-                    continue
-                
-                frame = cv2.resize(frame, (640, 480))
-                    
-                # Process Frame
-                annotated, verdict = process_frame(frame, cam_id)
-                
-                # Encode Frame
-                ok, jpeg = cv2.imencode(".jpg", annotated, [cv2.IMWRITE_JPEG_QUALITY, 80])
-                with self.locks[cam_id]:
-                    if ok:
-                        self.latest_jpegs[cam_id] = jpeg.tobytes()
-                    self.latest_verdicts[cam_id] = verdict
-            except Exception as e:
-                logger.error(f"Error in camera loop {cam_id}: {e}")
-                time.sleep(1)
-                
-        cap.release()
-        
-cam_manager = CameraManager()
+# Removed CameraManager
 
 
 @app.on_event("startup")
@@ -240,8 +203,6 @@ async def _startup() -> None:
     _db       = Database(db_path="logs/detections.json")
     logger.info("All components ready.")
     
-    # Start default camera
-    cam_manager.start_camera(0)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -298,47 +259,28 @@ class SummaryResponse(BaseModel):
 
 # ── Dashboard & Stream ──────────────────────────────────────────────────────
 
-def _generate_frames(cam_index: int):
-    cam_id = f"CAM-{cam_index:02d}"
-    cam_manager.start_camera(cam_index)
-    
-    last_frame = b""
-    try:
-        while True:
-            with cam_manager.locks.get(cam_id, threading.Lock()):
-                frame = cam_manager.latest_jpegs.get(cam_id, b"")
-                
-            if frame and frame != last_frame:
-                last_frame = frame
-                yield (b"--frame\r\n" b"Content-Type: image/jpeg\r\n\r\n" + frame + b"\r\n")
-                
-            time.sleep(0.04)
-    except Exception as e:
-        logger.debug(f"Generator exit for {cam_id}")
 
-@app.get("/video", tags=["UI"])
-async def video(cam: int = 0):
-    """MJPEG video stream endpoint for the UI."""
-    return StreamingResponse(_generate_frames(cam), media_type="multipart/x-mixed-replace; boundary=frame")
 
 @app.get("/stats", tags=["UI"])
-async def stats(cam: int = 0):
+async def stats():
     """Live JSON stats for the dashboard to poll."""
-    cam_id = f"CAM-{cam:02d}"
-    if cam_id in cam_manager.locks:
-        with cam_manager.locks[cam_id]:
-            verdict = dict(cam_manager.latest_verdicts.get(cam_id, {}))
-    else:
-        verdict = {
-            "status": "No Camera Connected", "has_id": False,
-            "dress_code": "unknown", "is_compliant": False, "person_results": []
-        }
-        
-    if _db:
-        summary = _db.get_summary()
-    else:
-        summary = {"total": 0, "compliant": 0, "violations": 0, "rate": "N/A"}
-        
+    verdict = {
+        "status": "No Camera Connected", "has_id": False,
+        "dress_code": "unknown", "is_compliant": False, "person_results": []
+    }
+    
+    total = stats_counters["total"]
+    rate = f"{(stats_counters['compliant'] / total * 100):.1f}%" if total > 0 else "0%"
+    
+    summary = {
+        "total": total,
+        "violations": stats_counters["violations"],
+        "compliant": stats_counters["compliant"],
+        "missing_id": stats_counters["missing_id"],
+        "improper_dress": stats_counters["improper_dress"],
+        "rate": rate
+    }
+    
     return {
         "verdict": verdict,
         "summary": summary
@@ -351,24 +293,9 @@ async def logs_json():
         return _db.get_all(limit=100)
     return []
 
-@app.get("/", response_class=HTMLResponse, include_in_schema=False)
-async def serve_dashboard(request: Request):
-    """Serve the Admin Dashboard HTML page."""
-    html_path = TEMPLATES_DIR / "index.html"
-    if html_path.exists():
-        return templates.TemplateResponse(request=request, name="index.html")
-    return HTMLResponse(
-        content="<h2>Dashboard not found.</h2><p>Make sure templates/index.html exists.</p>",
-        status_code=404,
-    )
-
-@app.get("/logo.png", include_in_schema=False)
-async def serve_logo():
-    """Serve the application logo."""
-    logo_path = ROOT / "logo" / "logo.png"
-    if logo_path.exists():
-        return FileResponse(logo_path)
-    return HTMLResponse(status_code=404)
+@app.get("/")
+async def root():
+    return FileResponse("templates/index.html")
 
 
 # ── Health ──────────────────────────────────────────────────────────────────
@@ -387,28 +314,31 @@ async def health() -> Dict[str, Any]:
 # ── Inference ───────────────────────────────────────────────────────────────
 
 @app.post("/detect", response_model=DetectResponse, tags=["Inference"])
-async def detect(req: DetectRequest) -> DetectResponse:
+async def detect(file: UploadFile = File(None), camera_id: str = "UPLOAD-IMG") -> DetectResponse:
     """
-    Run YOLOv8 inference on a single image.
+    Run YOLOv8 inference on a single uploaded image.
 
-    - Decodes base64 image
-    - Detects objects (person, id_card, formal_shirt, tie)
+    - Decodes uploaded image (no base64 needed)
+    - Detects objects
     - Applies compliance rules (ID + dress code)
     - Saves result to the JSON database
     - Returns full JSON verdict
     """
+    if file is None:
+        raise HTTPException(status_code=400, detail="No image received")
+        
     if _detector is None or _logic is None:
         raise HTTPException(status_code=503, detail="Model not yet loaded.")
 
     # ── Decode image ────────────────────────────────────────────────────────
     try:
-        img_bytes = base64.b64decode(req.image_b64)
-        img_array = np.frombuffer(img_bytes, dtype=np.uint8)
-        frame     = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
+        contents = await file.read()
+        nparr = np.frombuffer(contents, np.uint8)
+        frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
         if frame is None:
             raise ValueError("cv2.imdecode returned None")
     except Exception as exc:
-        raise HTTPException(status_code=400, detail=f"Invalid image: {exc}")
+        raise HTTPException(status_code=400, detail=f"Invalid image sequence: {exc}")
 
     # ── Inference ────────────────────────────────────────────────────────────
     t0          = time.perf_counter()
@@ -417,21 +347,23 @@ async def detect(req: DetectRequest) -> DetectResponse:
     verdict     = _logic.get_frame_verdict(person_res)
     elapsed_ms  = (time.perf_counter() - t0) * 1000
 
+    update_global_stats(verdict)
+
     # ── Alert + persist ──────────────────────────────────────────────────────
     if _alert:
-        _alert.trigger(req.camera_id, verdict)
+        _alert.trigger(camera_id, verdict)
 
     record_id = None
     if _db:
-        record_id = _db.save(req.camera_id, verdict)
+        record_id = _db.save(camera_id, verdict)
 
     logger.info(
         "POST /detect | cam=%s | status=%s | %.1f ms",
-        req.camera_id, verdict["status"], elapsed_ms,
+        camera_id, verdict["status"], elapsed_ms,
     )
 
     return DetectResponse(
-        camera_id      = req.camera_id,
+        camera_id      = camera_id,
         timestamp      = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         inference_ms   = round(elapsed_ms, 2),
         status         = verdict["status"],
@@ -492,7 +424,18 @@ async def clear_logs() -> Dict[str, str]:
     if _db is None:
         raise HTTPException(status_code=503, detail="Database not initialised.")
     _db.clear()
-    return {"message": "All logs cleared."}
+    
+    # Reset global counters
+    global stats_counters
+    stats_counters = {
+        "total": 0,
+        "violations": 0,
+        "compliant": 0,
+        "missing_id": 0,
+        "improper_dress": 0
+    }
+    
+    return {"message": "All logs and stats cleared."}
 
 @app.get("/report", tags=["Logs"])
 async def generate_report():

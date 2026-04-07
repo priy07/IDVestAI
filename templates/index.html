@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>IdVest AI — Compliance Monitor</title>
-  <link rel="icon" href="/logo.png" />
+  <link rel="icon" href="/logo/logo.png" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
 
@@ -61,13 +61,11 @@
       display: flex; align-items: center; gap: 12px; text-decoration: none;
     }
     .logo-img {
-      height: 40px; 
-      width: auto; 
-      object-fit: contain;
-      background: rgba(255, 255, 255, 0.95);
-      border-radius: 8px;
-      padding: 4px;
-      box-shadow: 0 0 10px rgba(0, 255, 255, 0.2);
+      height: 40px;
+      background: transparent;   /* 🔥 important */
+      border-radius: 0;          /* remove box */
+      padding: 0;                /* remove spacing */
+      box-shadow: none;          /* remove glow */
     }
     .logo-name {
       font-size: 1.25rem; font-weight: 800;
@@ -200,10 +198,12 @@
 <header>
   <div class="hdr">
     <a class="logo" href="/">
-      <img src="/logo.png" alt="IdVest AI Logo" class="logo-img" />
+      <img src="/logo/logo.png" alt="IdVest AI Logo" class="logo-img" />
       <div class="logo-name">IdVest AI</div>
     </a>
     <div class="hdr-right">
+      <button class="btn" onclick="startCamera()" style="border-color: var(--green); color: var(--green);">📷 Start Camera</button>
+      <button class="btn" onclick="stopCamera()" style="border-color: var(--red); color: var(--red); display:none;" id="btn-stop-cam">⏹ Stop Camera</button>
       <button class="btn btn-primary" onclick="downloadReport()">📄 Download PDF Report</button>
       <button class="btn" onclick="resetLogs()">↺ Reset Logs</button>
     </div>
@@ -250,19 +250,19 @@
         <div class="multi-cam-grid">
           <div class="video-container neon-border" id="cam0-container">
             <div class="live-badge">CAM-00</div>
-            <img src="/video?cam=0" onerror="this.style.display='none'; this.parentElement.innerHTML+='<div style=\'color:var(--muted)\'>Camera Offline</div>'">
+            <div class="offline-msg" style="color:var(--muted)">Camera Offline</div>
           </div>
           <div class="video-container neon-border" id="cam1-container">
             <div class="live-badge">CAM-01</div>
-            <img src="/video?cam=1" onerror="this.style.display='none'; this.parentElement.innerHTML+='<div style=\'color:var(--muted)\'>Camera Offline</div>'">
+            <div class="offline-msg" style="color:var(--muted)">Camera Offline</div>
           </div>
           <div class="video-container neon-border" id="cam2-container">
             <div class="live-badge">CAM-02</div>
-            <img src="/video?cam=2" onerror="this.style.display='none'; this.parentElement.innerHTML+='<div style=\'color:var(--muted)\'>Camera Offline</div>'">
+            <div class="offline-msg" style="color:var(--muted)">Camera Offline</div>
           </div>
           <div class="video-container neon-border" id="cam3-container">
             <div class="live-badge">CAM-03</div>
-            <img src="/video?cam=3" onerror="this.style.display='none'; this.parentElement.innerHTML+='<div style=\'color:var(--muted)\'>Camera Offline</div>'">
+            <div class="offline-msg" style="color:var(--muted)">Camera Offline</div>
           </div>
         </div>
       </div>
@@ -495,6 +495,102 @@
   }
   function hideUploadLoader() {
     document.getElementById('upload-loader').classList.remove('active');
+  }
+
+  // ─── Browser Camera Support ──────────────────────────────────────────
+  let streamRef = null;
+  let camInterval = null;
+
+  async function startCamera() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      streamRef = stream;
+      
+      const cam0 = document.getElementById('cam0-container');
+      
+      // Hide camera offline placeholders
+      Array.from(cam0.querySelectorAll('.offline-msg, img')).forEach(e => e.style.display = 'none');
+      
+      let videoEl = document.getElementById('browser-vid');
+      if (!videoEl) {
+          videoEl = document.createElement('video');
+          videoEl.id = 'browser-vid';
+          videoEl.autoplay = true;
+          videoEl.playsInline = true;
+          videoEl.muted = true;
+          videoEl.style.width = '100%';
+          videoEl.style.height = '100%';
+          videoEl.style.objectFit = 'contain';
+          cam0.appendChild(videoEl);
+      }
+      videoEl.style.display = 'block';
+      videoEl.srcObject = stream;
+      
+      document.querySelector('.live-badge').innerText = 'BROWSER-CAM';
+      document.getElementById('btn-stop-cam').style.display = 'inline-flex';
+      
+      // Start capturing frames every 1.5 seconds to avoid overloading the backend
+      camInterval = setInterval(captureFrameAndSend, 1500); 
+    } catch (err) {
+      alert("Camera permission denied or no camera found: " + err.message);
+    }
+  }
+
+  function stopCamera() {
+    if (streamRef) {
+      streamRef.getTracks().forEach(t => t.stop());
+      streamRef = null;
+    }
+    if (camInterval) {
+      clearInterval(camInterval);
+      camInterval = null;
+    }
+    document.getElementById('btn-stop-cam').style.display = 'none';
+    const videoEl = document.getElementById('browser-vid');
+    if (videoEl) videoEl.style.display = 'none';
+    document.querySelector('.live-badge').innerText = 'CAM-00';
+    
+    // Show camera offline placeholder
+    const cam0 = document.getElementById('cam0-container');
+    Array.from(cam0.querySelectorAll('.offline-msg')).forEach(e => e.style.display = 'block');
+  }
+
+  async function captureFrameAndSend() {
+    const videoEl = document.getElementById('browser-vid');
+    if (!videoEl || !streamRef) return;
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = videoEl.videoWidth;
+    canvas.height = videoEl.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoEl, 0, 0, canvas.width, canvas.height);
+    
+    canvas.toBlob(async (blob) => {
+        if (!blob) return;
+        const fd = new FormData();
+        fd.append('file', blob, 'frame.jpg');
+        
+        try {
+            const r = await fetch('/detect?camera_id=BROWSER-CAM', { method: 'POST', body: fd });
+            if (!r.ok) throw new Error("API Failure");
+            const data = await r.json();
+            
+            console.log("Live Detection:", data.status, data);
+            
+            if (data.status) {
+               // Render results inside UI list
+               updateStatusList(data, 'BROWSER-CAM');
+               
+               // Adjust camera border glow
+               const lc = document.getElementById('cam0-container');
+               if (data.is_compliant) { lc.style.boxShadow = '0 0 15px var(--green)'; lc.style.borderColor = 'var(--green)'; }
+               else if (data.status !== 'No Person Detected') { lc.style.boxShadow = '0 0 15px var(--red)'; lc.style.borderColor = 'var(--red)'; }
+               else { lc.style.boxShadow = ''; lc.style.borderColor = 'var(--border)'; }
+            }
+        } catch (e) {
+            console.error("Frame processing failed:", e);
+        }
+    }, 'image/jpeg', 0.8);
   }
 </script>
 </body>

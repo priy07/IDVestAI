@@ -39,12 +39,12 @@ class Detector:
     """
 
     CLASS_THRESHOLDS: Dict[str, float] = {
-        "person":          0.55,
-        "blazer":          0.65,
-        "formals":         0.65,
-        "faculty-casuals": 0.65,
-        "id-card":         0.15,
-        "faculty-id":      0.15,
+        "person":          0.50,
+        "blazer":          0.30,
+        "formals":         0.30,
+        "faculty-casuals": 0.40,
+        "id-card":         0.10,
+        "faculty-id":      0.10,
     }
 
     ALLOWED_CLASSES = {
@@ -97,7 +97,7 @@ class Detector:
         final = list(people)
 
         if self._custom_model:
-            res_items = self._custom_model(source=frame, conf=0.15, imgsz=480, verbose=False)
+            res_items = self._custom_model(source=frame, conf=0.03, imgsz=640, verbose=False)
             raw_items = self._parse_yolo(res_items)
 
             for item in raw_items:
@@ -144,13 +144,25 @@ class Detector:
             p_height = max(py2 - py1, 1)
             y_rel = (iy - py1) / p_height
 
-            if 0.15 <= y_rel <= 0.55:
-                item["confidence"] = min(0.99, conf * 1.30)
+            # Chest area
+            if 0.15 <= y_rel <= 0.60:
+                item["confidence"] = min(0.99, conf * 1.50)
+                
+                iw = item["box"][2] - item["box"][0]
+                ih = item["box"][3] - item["box"][1]
+                aspect = ih / max(iw, 1)
+                
+                # Check for lanyard (vertical strip) or small rectangle
+                if 0.3 <= aspect <= 5.0:
+                    # Mark as weak signal if below normal threshold but matches chest geometry
+                    if conf < self.CLASS_THRESHOLDS.get(label, 0.10):
+                        item["label"] = f"{label}-weak"
+                    return item
             else:
                 if conf < 0.45:
                     return None
 
-            if item["confidence"] < self.CLASS_THRESHOLDS.get(label, 0.18):
+            if item["confidence"] < self.CLASS_THRESHOLDS.get(label, 0.10):
                 return None
             return item
 

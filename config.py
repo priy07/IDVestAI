@@ -34,7 +34,6 @@ class Settings:
     CONFIDENCE_THRESHOLD: float = float(os.getenv("CONFIDENCE_THRESHOLD", "0.40"))
 
     # ── Camera / Source ───────────────────────────────────────────────────────
-    DEFAULT_SOURCE: int | str = 0        # 0 = first webcam
     DEFAULT_CAMERA_ID: str = "CAM-01"
 
     # ── API ────────────────────────────────────────────────────────────────────

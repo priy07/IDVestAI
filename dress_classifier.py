@@ -41,7 +41,7 @@ class DressCodeClassifier:
     """
 
     # Labels that count as formal attire
-    FORMAL_LABELS = {"formal_shirt", "tie"}
+    FORMAL_LABELS = {"formals", "blazer"}
 
     def classify(self, detections: List[Dict[str, Any]]) -> str:
         """
@@ -66,7 +66,7 @@ class DressCodeClassifier:
         """
         Return the list of formal attire items found in the frame.
 
-        Example return: ["formal_shirt", "tie"]
+        
         """
         found = []
         for det in detections:

@@ -1075,5 +1075,193 @@
     "dress_code": "Formal",
     "is_compliant": false,
     "image": "violations/CAM-00_P4_20260407_015301.jpg"
+  },
+  {
+    "timestamp": "2026-04-07 11:42:11",
+    "camera_id": "CAM-00",
+    "person_id": "P1",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Not Formal",
+    "is_compliant": false,
+    "image": "violations/CAM-00_P1_20260407_114211.jpg"
+  },
+  {
+    "timestamp": "2026-04-07 11:42:38",
+    "camera_id": "CAM-00",
+    "person_id": "P2",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Formal",
+    "is_compliant": false,
+    "image": "violations/CAM-00_P2_20260407_114238.jpg"
+  },
+  {
+    "timestamp": "2026-04-07 23:39:52",
+    "camera_id": "UPLOAD-IMG",
+    "person_id": "P1",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Formal",
+    "is_compliant": false,
+    "image": "violations/UPLOAD-IMG_P1_20260407_233951.jpg"
+  },
+  {
+    "timestamp": "2026-04-08 00:08:43",
+    "camera_id": "BROWSER-CAM",
+    "person_id": "P1",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Not Formal",
+    "is_compliant": false
+  },
+  {
+    "timestamp": "2026-04-08 00:08:43",
+    "camera_id": "BROWSER-CAM",
+    "person_id": "P2",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Not Formal",
+    "is_compliant": false
+  },
+  {
+    "timestamp": "2026-04-08 00:08:45",
+    "camera_id": "BROWSER-CAM",
+    "person_id": "P3",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Not Formal",
+    "is_compliant": false
+  },
+  {
+    "timestamp": "2026-04-08 00:08:58",
+    "camera_id": "BROWSER-CAM",
+    "person_id": "P4",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Not Formal",
+    "is_compliant": false
+  },
+  {
+    "timestamp": "2026-04-08 00:09:01",
+    "camera_id": "BROWSER-CAM",
+    "person_id": "P5",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Formal",
+    "is_compliant": false
+  },
+  {
+    "timestamp": "2026-04-08 00:14:57",
+    "camera_id": "BROWSER-CAM",
+    "person_id": "P1",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Not Formal",
+    "is_compliant": false
+  },
+  {
+    "timestamp": "2026-04-08 00:14:57",
+    "camera_id": "BROWSER-CAM",
+    "person_id": "P2",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Not Formal",
+    "is_compliant": false
+  },
+  {
+    "timestamp": "2026-04-08 00:15:03",
+    "camera_id": "BROWSER-CAM",
+    "person_id": "P3",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Not Formal",
+    "is_compliant": false
+  },
+  {
+    "timestamp": "2026-04-08 00:15:08",
+    "camera_id": "BROWSER-CAM",
+    "person_id": "P4",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Not Formal",
+    "is_compliant": false
+  },
+  {
+    "timestamp": "2026-04-08 00:16:06",
+    "camera_id": "BROWSER-CAM",
+    "person_id": "P5",
+    "status": "Violation",
+    "has_id": true,
+    "dress_code": "Not Formal",
+    "is_compliant": false
+  },
+  {
+    "timestamp": "2026-04-08 00:16:21",
+    "camera_id": "UPLOAD-IMG",
+    "person_id": "P6",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Formal",
+    "is_compliant": false,
+    "image": "violations/UPLOAD-IMG_P6_20260408_001620.jpg"
+  },
+  {
+    "timestamp": "2026-04-08 00:16:21",
+    "camera_id": "UPLOAD-IMG",
+    "person_id": "P7",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Not Formal",
+    "is_compliant": false,
+    "image": "violations/UPLOAD-IMG_P6_20260408_001620.jpg"
+  },
+  {
+    "timestamp": "2026-04-08 00:16:29",
+    "camera_id": "UPLOAD-IMG",
+    "person_id": "P8",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Formal",
+    "is_compliant": false,
+    "image": "violations/UPLOAD-IMG_P8_20260408_001629.jpg"
+  },
+  {
+    "timestamp": "2026-04-08 00:25:46",
+    "camera_id": "UPLOAD-IMG",
+    "person_id": "P2",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Formal",
+    "is_compliant": false,
+    "image": "violations/UPLOAD-IMG_P2_20260408_002546.jpg"
+  },
+  {
+    "timestamp": "2026-04-08 00:35:55",
+    "camera_id": "UPLOAD-IMG",
+    "person_id": "P1",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Formal",
+    "is_compliant": false,
+    "image": "violations/UPLOAD-IMG_P1_20260408_003555.jpg"
+  },
+  {
+    "timestamp": "2026-04-08 00:36:43",
+    "camera_id": "UPLOAD-IMG",
+    "person_id": "P6",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Not Formal",
+    "is_compliant": false
+  },
+  {
+    "timestamp": "2026-04-08 00:37:51",
+    "camera_id": "BROWSER-CAM",
+    "person_id": "P13",
+    "status": "Violation",
+    "has_id": false,
+    "dress_code": "Not Formal",
+    "is_compliant": false
   }
 ]

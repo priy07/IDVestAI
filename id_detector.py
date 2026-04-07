@@ -33,9 +33,9 @@ class IDCardDetector:
     """
 
     # The label name we look for — matches the class name in your YOLO model
-    ID_CARD_LABEL = "id_card"
+    ID_CARD_LABELS = {"id-card", "faculty-id"}
 
-    def has_id_card(self, detections: List[Dict[str, Any]]) -> bool:
+    def has_id_card(self, detections):
         """
         Scan the list of detections and return True if at least one
         'id_card' object was detected with any confidence.
@@ -49,22 +49,9 @@ class IDCardDetector:
         bool — True if ID card found, False otherwise
         """
         for det in detections:
-            if det.get("label") == self.ID_CARD_LABEL:
+            if det.get("label") in self.ID_CARD_LABELS:
                 return True
         return False
 
-    def get_id_card_detections(
-        self, detections: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
-        """
-        Return only the ID card detections (useful for drawing bounding boxes).
-
-        Parameters
-        ----------
-        detections : list — output from Detector.detect()
-
-        Returns
-        -------
-        list of dicts — only the id_card entries
-        """
-        return [d for d in detections if d.get("label") == self.ID_CARD_LABEL]
+    def get_id_card_detections(self, detections):
+        return [d for d in detections if d.get("label") in self.ID_CARD_LABELS]
