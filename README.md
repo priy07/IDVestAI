@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 🚀 IdVest AI
 
 **IdVest AI** is an AI-powered surveillance system designed to monitor ID card presence and dress code compliance in real time using computer vision.
@@ -90,4 +89,3 @@ BTech IT Student
 
 This project is for academic purposes only.
 =======
->>>>>>> b9d753e (IDVestAI project)
